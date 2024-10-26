@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </body>
 </html>
 
-
+<?php
 // Sanitizing and validating inputs
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Assuming input fields: 'email', 'url', 'name', 'password' exist in the form
@@ -143,3 +143,4 @@ if (isset($hashed_password)) {
         log_error('Failed login attempt: invalid password');
     }
 }
+?>
