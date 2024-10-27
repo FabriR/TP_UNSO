@@ -109,38 +109,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </body>
 </html>
 
-<?php
-// Sanitizing and validating inputs
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Assuming input fields: 'email', 'url', 'name', 'password' exist in the form
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    $url = filter_input(INPUT_POST, 'url', FILTER_SANITIZE_URL);
-    $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
-    
-    // Passwords should not be sanitized but hashed for security purposes
-    $password = $_POST['password'];
-    $hashed_password = password_hash($password, PASSWORD_BCRYPT);
-    
-    // Implement CSRF token validation again here if necessary
-}
-
-// Error handling
-ini_set('display_errors', 0);  // Disable error display
-ini_set('log_errors', 1);      // Enable error logging
-ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
-
-// Error logging function for critical errors (optional)
-function log_error($error_message) {
-    error_log($error_message, 3, '/path/to/custom-error-log.log');
-}
-
-// Example of password validation and verification for secure login
-if (isset($hashed_password)) {
-    if (password_verify($password, $hashed_password)) {
-        // Password matches
-    } else {
-        // Password does not match
-        log_error('Failed login attempt: invalid password');
-    }
-}
-?>
