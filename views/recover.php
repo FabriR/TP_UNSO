@@ -1,16 +1,9 @@
-
-<?php
-// Error handling
-ini_set('display_errors', 0);  // Disable error display in production
-ini_set('log_errors', 1);      // Enable error logging
-ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
-?>
 <?php
 define('SECURE_PAGE', true);
 
 // Configurar opciones de la sesión para proteger contra hijacking de cookies y ataques XSS
 session_set_cookie_params([
-    'lifetime' => 0,           // La sesión dura hasta que el navegador se cierra
+    'lifetime' => 0,
     'path' => '/',
     'domain' => '',
     'secure' => false,          // Cambia a true cuando uses HTTPS
@@ -35,27 +28,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $error_message = 'Solicitud no válida.';
     } else {
-        // Escapar las entradas del usuario para evitar ataques XSS
-        $username = htmlspecialchars($_POST['username'], ENT_QUOTES, 'UTF-8');
-        $friend_name = htmlspecialchars($_POST['friend_name'], ENT_QUOTES, 'UTF-8');
-        $mother_name = htmlspecialchars($_POST['mother_name'], ENT_QUOTES, 'UTF-8');
-        $nickname = htmlspecialchars($_POST['nickname'], ENT_QUOTES, 'UTF-8');
+        // Validar y sanitizar las entradas del formulario
+        $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+        $friend_name = filter_input(INPUT_POST, 'friend_name', FILTER_SANITIZE_STRING);
+        $mother_name = filter_input(INPUT_POST, 'mother_name', FILTER_SANITIZE_STRING);
+        $nickname = filter_input(INPUT_POST, 'nickname', FILTER_SANITIZE_STRING);
 
-        // Consulta para verificar las respuestas de seguridad
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username AND friend_name = :friend_name AND mother_name = :mother_name AND nickname = :nickname");
-        $stmt->execute([
-            ':username' => $username,
-            ':friend_name' => $friend_name,
-            ':mother_name' => $mother_name,
-            ':nickname' => $nickname
-        ]);
-
-        if ($stmt->rowCount() > 0) {
-            $_SESSION['reset_username'] = $username;
-            header("Location: reset_password.php");
-            exit;
+        // Validar que los campos no estén vacíos
+        if (empty($username) || empty($friend_name) || empty($mother_name) || empty($nickname)) {
+            $error_message = 'Todos los campos son obligatorios.';
         } else {
-            $error_message = 'Las respuestas de seguridad no coinciden. Inténtalo de nuevo.';
+            // Consulta para verificar las respuestas de seguridad
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username AND friend_name = :friend_name AND mother_name = :mother_name AND nickname = :nickname");
+            $stmt->execute([
+                ':username' => $username,
+                ':friend_name' => $friend_name,
+                ':mother_name' => $mother_name,
+                ':nickname' => $nickname
+            ]);
+
+            if ($stmt->rowCount() > 0) {
+                $_SESSION['reset_username'] = $username;
+                header("Location: reset_password.php");
+                exit;
+            } else {
+                $error_message = 'Las respuestas de seguridad no coinciden. Inténtalo de nuevo.';
+            }
         }
     }
 }
@@ -107,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                 <?php endif; ?>
                 <form method="POST" action="">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="form-group">
                         <label for="username">Nombre de usuario</label>
                         <input type="text" name="username" class="form-control" required>
@@ -126,21 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Verificar</button>
                 </form>
+                <a href="../index.php"><button>Volver a Inicio</button></a>
             </div>
         </div>
     </div>
 </body>
 </html>
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Sanitize email input for password recovery
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    
-    // CSRF Token verification
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        $error_message = 'Solicitud no válida.';
-    } else {
-        // Process password recovery logic, ensuring sanitized email is used
-    }
-}
