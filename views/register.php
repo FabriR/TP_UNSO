@@ -1,21 +1,14 @@
-
-<?php
-// Error handling
-ini_set('display_errors', 0);  // Disable error display in production
-ini_set('log_errors', 1);      // Enable error logging
-ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
-?>
 <?php
 define('SECURE_PAGE', true);
 
 // Configurar opciones de la sesión para proteger contra hijacking de cookies y ataques XSS
 session_set_cookie_params([
-    'lifetime' => 0,           // La sesión dura hasta que el navegador se cierra
+    'lifetime' => 0,           
     'path' => '/',
     'domain' => '',
     'secure' => false,          // Cambia a true cuando uses HTTPS
     'httponly' => true,         // No accesible desde JavaScript
-    'samesite' => 'Strict'      // Evita el envío de cookies en solicitudes de otros sitios
+    'samesite' => 'Strict'      
 ]);
 
 session_start();
@@ -23,6 +16,7 @@ session_regenerate_id(true);    // Previene la fijación de sesión
 
 require '../includes/db.php';
 
+// Generar un token CSRF si no existe
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -30,36 +24,58 @@ if (empty($_SESSION['csrf_token'])) {
 $error_message = '';
 $success_message = '';
 
+// Función para validar caracteres especiales no permitidos
+function validar_entrada($data) {
+    // Solo permitir letras, números, y algunos caracteres como guiones bajos y puntos
+    if (!preg_match('/^[a-zA-Z0-9_.-]*$/', $data)) {
+        return false;
+    }
+    return true;
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Verificar token CSRF
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $error_message = 'Solicitud no válida.';
     } else {
+        // Sanitizar y validar las entradas del usuario
         $username = htmlspecialchars($_POST['username'], ENT_QUOTES, 'UTF-8');
-        $email = htmlspecialchars($_POST['email'], ENT_QUOTES, 'UTF-8');
-        $password = $_POST['password'];
+        $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+        $password = $_POST['password']; // Validar en el próximo paso
         $friend_name = htmlspecialchars($_POST['friend_name'], ENT_QUOTES, 'UTF-8');
         $mother_name = htmlspecialchars($_POST['mother_name'], ENT_QUOTES, 'UTF-8');
         $nickname = htmlspecialchars($_POST['nickname'], ENT_QUOTES, 'UTF-8');
 
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email");
-        $stmt->execute([':username' => $username, ':email' => $email]);
-
-        if ($stmt->rowCount() > 0) {
-            $error_message = 'El nombre de usuario o correo ya está en uso.';
+        // Validar caracteres permitidos en los campos sensibles
+        if (!validar_entrada($username) || !validar_entrada($friend_name) || !validar_entrada($mother_name) || !validar_entrada($nickname)) {
+            $error_message = 'Los campos no deben contener caracteres especiales como comillas o símbolos.';
+        } elseif (strlen($password) < 8) {
+            // Validar la longitud mínima de la contraseña
+            $error_message = 'La contraseña debe tener al menos 8 caracteres.';
         } else {
-            $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+            // Verificar si el nombre de usuario o el correo ya están en uso
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email");
+            $stmt->execute([':username' => $username, ':email' => $email]);
 
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, friend_name, mother_name, nickname) VALUES (:username, :email, :password, :friend_name, :mother_name, :nickname)");
-            $stmt->execute([
-                ':username' => $username,
-                ':email' => $email,
-                ':password' => $hashed_password,
-                ':friend_name' => $friend_name,
-                ':mother_name' => $mother_name,
-                ':nickname' => $nickname
-            ]);
+            if ($stmt->rowCount() > 0) {
+                $error_message = 'El nombre de usuario o correo ya está en uso.';
+            } else {
+                // Encriptar la contraseña
+                $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
-            $success_message = 'Registro exitoso. Ahora puedes iniciar sesión.';
+                // Insertar el nuevo usuario en la base de datos
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, password, friend_name, mother_name, nickname) VALUES (:username, :email, :password, :friend_name, :mother_name, :nickname)");
+                $stmt->execute([
+                    ':username' => $username,
+                    ':email' => $email,
+                    ':password' => $hashed_password,
+                    ':friend_name' => $friend_name,
+                    ':mother_name' => $mother_name,
+                    ':nickname' => $nickname
+                ]);
+
+                $success_message = 'Registro exitoso. Ahora puedes iniciar sesión.';
+            }
         }
     }
 }
@@ -139,27 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <button type="submit" class="btn btn-primary btn-block">Registrar</button>
                     <p class="mt-3">¿Ya tienes una cuenta? <a href="../index.php">Inicia sesión aquí</a></p>
                 </form>
+                <a href="../index.php"><button>Volver a Inicio</button></a>
             </div>
         </div>
     </div>
 </body>
 </html>
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Sanitize inputs
-    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    
-    // Sanitize password, then hash it
-    $password = $_POST['password'];
-    $hashed_password = password_hash($password, PASSWORD_BCRYPT);
-    
-    // CSRF Token verification
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        $error_message = 'Solicitud no válida.';
-    } else {
-        // Proceed with registration logic, e.g., storing sanitized and hashed data in DB
-        // Ensure the hashed password is stored
-    }
-}
