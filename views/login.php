@@ -1,10 +1,74 @@
-
 <?php
-// Error handling
-ini_set('display_errors', 0);  // Disable error display in production
-ini_set('log_errors', 1);      // Enable error logging
-ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
+define('SECURE_PAGE', true);
+
+// Configurar opciones de la sesión para proteger contra hijacking de cookies y ataques XSS
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,          // Cambia a true cuando uses HTTPS
+    'httponly' => true,         // No accesible desde JavaScript
+    'samesite' => 'Strict'      // Evita el envío de cookies en solicitudes de otros sitios
+]);
+
+session_start();
+session_regenerate_id(true);    // Previene la fijación de sesión
+
+require '../includes/db.php';
+
+// Generar un token CSRF si no existe
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$error_message = '';
+
+// Función para validar la entrada
+function validar_entrada($data) {
+    // Permitir solo letras, números y algunos caracteres básicos (evita caracteres especiales como comillas)
+    return preg_match('/^[a-zA-Z0-9_.@-]*$/', $data);
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Verificar el token CSRF
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error_message = 'Solicitud no válida.';
+    } else {
+        // Sanitizar y validar las entradas del usuario
+        $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+        $password = $_POST['password']; // Se valida más abajo
+
+        // Validar que los datos no contengan caracteres especiales peligrosos
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !validar_entrada($password)) {
+            $error_message = 'El email o la contraseña no son válidos.';
+        } else {
+            // Preparar y ejecutar la consulta
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+            $stmt->execute([':email' => $email]);
+            $user = $stmt->fetch();
+
+            // Verificar si el usuario existe y la contraseña es correcta
+            if ($user && password_verify($password, $user['password'])) {
+                // Iniciar la sesión del usuario
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+
+                // Redirigir según el rol del usuario
+                if ($user['role'] === 'admin') {
+                    header('Location: admin.php');
+                } else {
+                    header('Location: user.php');
+                }
+                exit;
+            } else {
+                $error_message = 'Email o contraseña incorrectos.';
+            }
+        }
+    }
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,26 +82,34 @@ ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
     </style>
 </head>
 <body>
-    <!-- Contenido del formulario de inicio de sesión -->
     <?php include 'partials/header.php'; ?>
+
     <div class="container">
         <h2>Iniciar Sesión</h2>
-        <!-- Mostrar mensajes de error -->
-        <form method="POST" action="../index.php">
-            <!-- Campos de formulario -->
+        
+        <!-- Mostrar mensajes de error si existen -->
+        <?php if (!empty($error_message)): ?>
+            <div class="alert alert-danger">
+                <?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
+        
+        <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" name="email" class="form-control" id="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" name="password" class="form-control" id="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
         </form>
     </div>
+
     <?php include 'partials/footer.php'; ?>
 </body>
 </html>
-
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Sanitize the inputs (assuming 'username' and 'password' fields)
-    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-    $password = $_POST['password']; // Passwords should not be sanitized, just hashed
-    
-    // Process the login (password_verify should be used if hash comparison is required)
-}
-?>
