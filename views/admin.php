@@ -1,35 +1,74 @@
 <?php
 session_start();
+
+define('SECURE_PAGE', true);
+
+// Configurar opciones de la sesión para proteger contra hijacking de cookies y ataques XSS
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,          // Cambia a true cuando uses HTTPS
+    'httponly' => true,         // No accesible desde JavaScript
+    'samesite' => 'Strict'      // Evita el envío de cookies en solicitudes de otros sitios
+]);
+
+session_start();
+session_regenerate_id(true);    // Previene la fijación de sesión
+
+require '../includes/db.php';
+
+// Generar un token CSRF si no existe
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Validación de sesión y rol
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header('Location: ../index.php'); // Redirigir al login si no está autenticado
     exit;
 }
 
-// Conexión a la base de datos
-require '../includes/db.php';
+$message = '';
 
-// Definir cuántos registros se mostrarán por página
-$records_per_page = 10;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $records_per_page;
+// Si se recibe una solicitud para eliminar un usuario
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user_id'])) {
+    // Verificar el token CSRF
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die('Solicitud no válida.');
+    }
 
-// Contar el total de registros para calcular el número de páginas
-$stmt_count = $pdo->query("SELECT COUNT(*) FROM access_log");
-$total_records = $stmt_count->fetchColumn();
-$total_pages = ceil($total_records / $records_per_page);
+    $delete_user_id = intval($_POST['delete_user_id']);
 
-// Obtener los registros con límite y desplazamiento (offset)
-$stmt = $pdo->prepare("
-    SELECT access_log.*, users.username, users.email 
-    FROM access_log 
-    JOIN users ON access_log.user_id = users.id 
-    ORDER BY login_time DESC 
-    LIMIT :limit OFFSET :offset
-");
-$stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    // Verificar que el ID del usuario sea válido y no sea admin
+    if ($delete_user_id > 0) {
+        try {
+            // Eliminar registros en access_log primero
+            $stmt = $pdo->prepare("DELETE FROM access_log WHERE user_id = :user_id");
+            $stmt->execute([':user_id' => $delete_user_id]);
+
+            // Ahora eliminar al usuario de la tabla users
+            $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id AND role != 'admin'");
+            if ($stmt->execute([':id' => $delete_user_id])) {
+                $message = 'Usuario eliminado correctamente.';
+            } else {
+                $message = 'Error al eliminar el usuario.';
+            }
+        } catch (PDOException $e) {
+            $message = 'Error en la eliminación: ' . $e->getMessage();
+        }
+    } else {
+        $message = 'ID de usuario no válido.';
+    }
+
+    header("Location: admin.php?message=" . urlencode($message)); // Redirigir de vuelta a la página de administración
+    exit;
+}
+
+// Obtener los usuarios que no son administradores
+$stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE role != 'admin'");
 $stmt->execute();
-$access_logs = $stmt->fetchAll();
+$users = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -53,7 +92,14 @@ $access_logs = $stmt->fetchAll();
 
     <div class="container mt-5">
         <h1>Bienvenido al Panel de Administración</h1>
-        <h2 class="mt-5">Registro de Accesos</h2>
+        <h2 class="mt-5">Gestión de Usuarios</h2>
+
+        <!-- Mostrar mensajes de éxito o error -->
+        <?php if (isset($_GET['message'])): ?>
+            <div class="alert alert-info">
+                <?php echo htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
 
         <table class="table table-bordered">
             <thead>
@@ -61,100 +107,34 @@ $access_logs = $stmt->fetchAll();
                     <th>ID</th>
                     <th>Usuario</th>
                     <th>Email</th>
-                    <th>Hora de Inicio de Sesión</th>
-                    <th>Dirección IP</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($access_logs as $log): ?>
+                <?php foreach ($users as $user): ?>
                 <tr>
-                    <td><?php echo htmlspecialchars($log['id']); ?></td>
-                    <td><?php echo htmlspecialchars($log['username']); ?></td>
-                    <td><?php echo htmlspecialchars($log['email']); ?></td>
-                    <td><?php echo htmlspecialchars($log['login_time']); ?></td>
-                    <td><?php echo htmlspecialchars($log['ip_address']); ?></td>
+                    <td><?php echo htmlspecialchars($user['id']); ?></td>
+                    <td><?php echo htmlspecialchars($user['username']); ?></td>
+                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                    <td>
+                        <form method="POST" action="admin.php" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                            <input type="hidden" name="delete_user_id" value="<?php echo $user['id']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-
-        <!-- Paginación -->
-        <nav>
-            <ul class="pagination">
-                <li class="page-item <?php if ($page <= 1) echo 'disabled'; ?>">
-                    <a class="page-link" href="?page=<?php echo $page - 1; ?>">Anterior</a>
-                </li>
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <li class="page-item <?php if ($page == $i) echo 'active'; ?>">
-                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <li class="page-item <?php if ($page >= $total_pages) echo 'disabled'; ?>">
-                    <a class="page-link" href="?page=<?php echo $page + 1; ?>">Siguiente</a>
-                </li>
-            </ul>
-        </nav>
     </div>
+
     <footer class="text-center mt-5">
         <p>&copy; 2024 Sistema de Gestión de Usuarios. Todos los derechos reservados. Grupo B2</p>
     </footer>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-<?php
-// Fetch the users and display them along with a delete button (X) for each
-$stmt = $pdo->prepare("
-    SELECT access_log.*, users.username, users.email 
-    FROM access_log 
-    JOIN users ON access_log.user_id = users.id 
-    ORDER BY login_time DESC 
-    LIMIT :limit OFFSET :offset
-");
-$stmt->bindValue(':limit', $records_per_page, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-
-echo "<table class='table'>";
-echo "<tr><th>Username</th><th>Email</th><th>Login Time</th><th>Action</th></tr>";
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    echo "<tr>";
-    echo "<td>" . htmlspecialchars($row['username']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['email']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['login_time']) . "</td>";
-    echo "<td><a href='admin.php?delete=" . htmlspecialchars($row['user_id']) . "' class='btn btn-danger'>X</a></td>";
-    echo "</tr>";
-}
-echo "</table>";
-?>
-
-
-<?php
-if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $user_id = (int)$_GET['delete'];
-    
-    // Check if the user exists before deleting
-    $stmt_check = $pdo->prepare("SELECT id FROM users WHERE id = :id");
-    $stmt_check->execute(['id' => $user_id]);
-    if ($stmt_check->rowCount() > 0) {
-        // Delete the user
-        $stmt_delete = $pdo->prepare("DELETE FROM users WHERE id = :id");
-        $stmt_delete->execute(['id' => $user_id]);
-        echo "<p>User deleted successfully.</p>";
-    } else {
-        echo "<p>User not found.</p>";
-    }
-}
-?>
