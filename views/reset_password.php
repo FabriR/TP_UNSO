@@ -1,10 +1,3 @@
-
-<?php
-// Error handling
-ini_set('display_errors', 0);  // Disable error display in production
-ini_set('log_errors', 1);      // Enable error logging
-ini_set('error_log', '/path/to/php-error.log');  // Set path for the error log
-?>
 <?php
 define('SECURE_PAGE', true);
 
@@ -44,9 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
 
-        if ($new_password === $confirm_password) {
+        // Validar la longitud de la nueva contraseña
+        if (strlen($new_password) < 8) {
+            $error_message = 'La contraseña debe tener al menos 8 caracteres.';
+        } elseif ($new_password !== $confirm_password) {
+            $error_message = "Las contraseñas no coinciden. Inténtalo de nuevo.";
+        } else {
+            // Encriptar la nueva contraseña
             $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
 
+            // Actualizar la contraseña en la base de datos
             $stmt = $pdo->prepare("UPDATE users SET password = :password WHERE username = :username");
             $stmt->execute([
                 ':password' => $hashed_password,
@@ -57,8 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             unset($_SESSION['reset_username']);
             header("Location: ../index.php?reset=success");
             exit;
-        } else {
-            $error_message = "Las contraseñas no coinciden. Inténtalo de nuevo.";
         }
     }
 }
@@ -124,21 +122,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </body>
 </html>
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Sanitize the new password input
-    $new_password = filter_input(INPUT_POST, 'new_password', FILTER_SANITIZE_STRING);
-    
-    // Ensure password is hashed before storage
-    $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
-    
-    // CSRF Token verification if applicable
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        $error_message = 'Invalid CSRF token';
-        log_error($error_message);
-        exit;
-    }
-
-    // Process password reset logic here (e.g., update the database with the hashed password)
-}
