@@ -1,4 +1,3 @@
-
 <?php
 class UserController {
     private $pdo;
@@ -8,25 +7,22 @@ class UserController {
     }
 
     public function register() {
-        // Logic for registering users would go here
+        // Asegúrate de que la función registerUser realiza la sanitización y validación adecuadas
         return registerUser($this->pdo);
     }
 
     public function viewProfile() {
-        // Secure logic to show user profile
+        // Verificar si la sesión del usuario está activa antes de proceder
         if (isset($_SESSION['user_id'])) {
-            try {
-                $user_id = filter_var($_SESSION['user_id'], FILTER_SANITIZE_NUMBER_INT);
-                $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
-                $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
-                $stmt->execute();
-                return $stmt->fetch();
-            } catch (PDOException $e) {
-                error_log("Profile fetch error: " . $e->getMessage(), 3, '/path/to/php-error.log');
-                return null;
-            }
+            // Preparar la consulta para obtener el perfil del usuario
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
+            // Asegurarse de sanitizar la entrada de la sesión (en este caso, no es necesario ya que es de servidor)
+            $stmt->bindParam(':id', $_SESSION['user_id'], PDO::PARAM_INT);
+            $stmt->execute();
+            // Devolver los datos del perfil del usuario
+            return $stmt->fetch();
         }
-        return null;
+        return null;  // Devolver null si no hay sesión activa
     }
 }
 ?>
