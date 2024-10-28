@@ -1,3 +1,29 @@
+# Proyecto de Sistema de Autenticación de Usuarios
+
+Este proyecto es un sistema de autenticación de usuarios desarrollado en PHP y MySQL, que incluye funcionalidades como registro, inicio de sesión, auditoría de accesos, y gestión de usuarios con roles.
+
+## Características del Proyecto
+
+- **Registro de Usuarios**: Permite a los usuarios crear una cuenta.
+- **Inicio de Sesión**: Los usuarios pueden iniciar sesión y ser redirigidos según su rol.
+- **Roles de Usuario**: Roles de `admin` y `user` para administrar los permisos.
+- **Auditoría de Accesos**: Se registra cada inicio de sesión con detalles como IP y hora.
+- **Gestión de Usuarios**: Los administradores pueden ver, editar y eliminar usuarios.
+
+## Requisitos
+
+- **Servidor Web**: Apache (XAMPP o WAMP recomendado para desarrollo local), debian que se encuentra detallado mas abajo
+- **PHP**: Versión 7.4 o superior
+- **MySQL**: Base de datos para gestionar los usuarios y registros de acceso
+- **phpMyAdmin** (opcional): Para facilitar la administración de la base de datos.
+
+## Configuración del Proyecto
+
+1. **Clonar el Repositorio**
+
+   ```bash
+   git clone https://github.com/FabriR/TP_UNSO.git
+
 Al momento de importación por ejemplo en debian u OS similar, tiene que estar los paquetes necesarios para el funcionamiento, como php, php-mysql y mysql
 
 La instalación es sencilla:
@@ -74,6 +100,6 @@ ORDER BY timestamp DESC;
 
 
 Windows: 
-Simplemente importar la base de datos en import/importar
+Simplemente importar la base de datos en import/importar en phpMyAdmin
 
 Los usuarios como admin o test se encuentran en el archivo usuarios.txt
