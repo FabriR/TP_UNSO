@@ -25,7 +25,7 @@ Este proyecto es un sistema de autenticación de usuarios desarrollado en PHP y 
 
 ## Requisitos
 
-- **Servidor Web**: Apache (XAMPP o WAMP recomendado para desarrollo local), debian que se encuentra detallado mas abajo
+- **Servidor Web**: Apache (XAMPP o WAMP recomendado para desarrollo local)
 - **PHP**: Versión 7.4 o superior
 - **MySQL**: Base de datos para gestionar los usuarios y registros de acceso
 - **phpMyAdmin** (opcional): Para facilitar la administración de la base de datos.
