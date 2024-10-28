@@ -49,9 +49,7 @@ sudo apt mysql-server
 
 ## Descargar y configurar el repositorio MySQL
 
-wget https://dev.mysql.com/get/mysql-apt-config_0.8.33-1_all.deb (u otra version mas actual)
-
-Estas son las dependencias que necesita mysql-server
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.33-1_all.deb (u otra versión más actual)
 
 sudo apt install lsb-release
 
