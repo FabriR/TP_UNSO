@@ -102,4 +102,4 @@ ORDER BY timestamp DESC;
 # Importación de la Base de Datos en Windows: 
 Si estás usando XAMPP o WAMP en Windows, simplemente importa la base de datos desde phpMyAdmin a través de la opción Importar.
 
-Nota: Los usuarios "admin" y "test" están detallados en el archivo usuarios.txt.
+###Nota: Los usuarios "admin" y "test" están detallados en el archivo usuarios.txt.
