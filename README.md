@@ -1,4 +1,4 @@
-Al momento de importación por ejemplo en debian, tiene que estar los paquetes necesarios para el funcionamiento, como php, php-mysql y mysql
+Al momento de importación por ejemplo en debian u OS similar, tiene que estar los paquetes necesarios para el funcionamiento, como php, php-mysql y mysql
 
 La instalación es sencilla:
 
@@ -72,3 +72,8 @@ FROM audit_log
 WHERE action = 'CREATE_USER'
 ORDER BY timestamp DESC;
 
+
+Windows: 
+Simplemente importar la base de datos en import/importar
+
+Los usuarios como admin o test se encuentran en el archivo usuarios.txt
