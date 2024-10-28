@@ -1,15 +1,15 @@
 # Docente: Germán Gabriel Gianotti 
 ## Grupo B 
 ## Alumnos: 
-Cortes	Nahuel	ncortesguiet@gmail.com	
+Cortes Nahuel	ncortesguiet@gmail.com	
 
-Fabricio	Robaina	robaina.buchwitz@gmail.com	
+Fabricio	Robaina Buchwitz robaina.buchwitz@gmail.com	
 
-Landro	Nahuel	nahue.landro321@gmail.com	
+Landro Nahuel	nahue.landro321@gmail.com	
 
 Fernández de la Cruz	Federico Gustavo	federicofernandezdelacruz@gmail.com	
 
-Malsenido	bruno	bruno8080808080808080@gmail.com
+Malsenido Bruno	bruno8080808080808080@gmail.com
 
 # Proyecto de Sistema de Autenticación de Usuarios
 
