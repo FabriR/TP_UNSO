@@ -58,7 +58,8 @@ sudo apt install php-mysql
 
 # Importación de la Base de Datos
 
-sudo mysql -uroot -p(password) < /ruta/loginsystem.sql (automaticamente se crea el usuario "test" con la contraseña y los privilegios necesarios)
+sudo mysql -uroot -p(password) < /ruta/loginsystem.sql 
+### Nota: Este script de importación crea automáticamente el usuario test con los privilegios necesarios.
 
 ## Consultas de Auditoría y Visualización de Usuarios
 
