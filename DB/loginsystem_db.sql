@@ -76,44 +76,28 @@ ALTER TABLE `users`
 ALTER TABLE `access_log`
   ADD CONSTRAINT `access_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
--- Crear procedimientos para auditoría
+-- Crear triggers para auditoría
 
+-- Trigger para registrar usuarios creados
 DELIMITER $$
-
-CREATE PROCEDURE create_user(IN username VARCHAR(100), IN email VARCHAR(100), IN password VARCHAR(255), IN role ENUM('user', 'admin'), IN action_by INT)
+CREATE TRIGGER after_user_insert
+AFTER INSERT ON users
+FOR EACH ROW
 BEGIN
-    -- Insertar el nuevo usuario en la tabla de usuarios
-    INSERT INTO users (username, email, password, role, created_at) VALUES (username, email, password, role, NOW());
-    
-    -- Insertar el evento en la tabla de auditoría
     INSERT INTO audit_log (action, affected_username, action_by, timestamp, details)
-    VALUES ('CREATE_USER', username, action_by, NOW(), CONCAT('User created with email: ', email));
-END $$
+    VALUES ('CREATE_USER', NEW.username, NULL, NOW(), CONCAT('User created with email: ', NEW.email));
+END$$
+DELIMITER ;
 
-CREATE PROCEDURE delete_user(IN user_id INT, IN action_by INT)
+-- Trigger para registrar usuarios eliminados
+DELIMITER $$
+CREATE TRIGGER after_user_delete
+AFTER DELETE ON users
+FOR EACH ROW
 BEGIN
-    -- Obtener el nombre del usuario antes de eliminar
-    DECLARE uname VARCHAR(100);
-    SELECT username INTO uname FROM users WHERE id = user_id;
-    
-    -- Eliminar el usuario
-    DELETE FROM users WHERE id = user_id;
-
-    -- Insertar en la auditoría que el usuario fue eliminado
     INSERT INTO audit_log (action, affected_username, action_by, timestamp, details)
-    VALUES ('DELETE_USER', uname, action_by, NOW(), CONCAT('User ID: ', user_id, ' was deleted.'));
-END $$
-
-CREATE PROCEDURE log_user_login(IN user_id INT, IN ip_address VARCHAR(45))
-BEGIN
-    -- Registrar en el log de auditoría el inicio de sesión
-    INSERT INTO audit_log (action, user_id, affected_username, timestamp, details)
-    SELECT 'LOGIN', id, username, NOW(), CONCAT('IP Address: ', ip_address) FROM users WHERE id = user_id;
-
-    -- Registrar también en la tabla de access_log
-    INSERT INTO access_log (user_id, ip_address, login_time) VALUES (user_id, ip_address, NOW());
-END $$
-
+    VALUES ('DELETE_USER', OLD.username, NULL, NOW(), CONCAT('User with email: ', OLD.email, ' was deleted.'));
+END$$
 DELIMITER ;
 
 -- Crear usuario de MySQL y asignar permisos sobre la base de datos
