@@ -9,10 +9,10 @@ session_set_cookie_params([
     'samesite' => 'Strict'      // Evita el envío de cookies en solicitudes de otros sitios
 ]);
 
-session_start(); // Inicia la sesión después de configurar los parámetros
-session_regenerate_id(true);    // Previene la fijación de sesión
+session_start(); // Iniciar sesión después de configurar los parámetros de la cookie
 
 define('SECURE_PAGE', true);
+session_regenerate_id(true);    // Previene la fijación de sesión
 
 require '../includes/db.php';
 
@@ -68,3 +68,71 @@ $stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE role != 'admi
 $stmt->execute();
 $users = $stmt->fetchAll();
 ?>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand">Sistema de Gestión de Usuarios</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav mr-auto"></ul>
+            <form method="POST" action="../controllers/logout.php" class="form-inline">
+                <button type="submit" class="btn btn-danger my-2 my-sm-0">Cerrar sesión</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1>Bienvenido al Panel de Administración</h1>
+        <h2 class="mt-5">Gestión de Usuarios</h2>
+
+        <!-- Mostrar mensajes de éxito o error -->
+        <?php if (isset($_GET['message'])): ?>
+            <div class="alert alert-info">
+                <?php echo htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        <?php endif; ?>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($users as $user): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($user['id']); ?></td>
+                    <td><?php echo htmlspecialchars($user['username']); ?></td>
+                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                    <td>
+                        <form method="POST" action="admin.php" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                            <input type="hidden" name="delete_user_id" value="<?php echo $user['id']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="text-center mt-5">
+        <p>&copy; 2024 Sistema de Gestión de Usuarios. Todos los derechos reservados. Grupo B2</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
