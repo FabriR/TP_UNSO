@@ -1,3 +1,16 @@
+# Docente: Germán Gabriel Gianotti 
+## Grupo B 
+## Alumnos: 
+Cortes	Nahuel	ncortesguiet@gmail.com	
+
+Fabricio	Robaina	robaina.buchwitz@gmail.com	
+
+Landro	Nahuel	nahue.landro321@gmail.com	
+
+Fernández de la Cruz	Federico Gustavo	federicofernandezdelacruz@gmail.com	
+
+Malsenido	bruno	bruno8080808080808080@gmail.com
+
 # Proyecto de Sistema de Autenticación de Usuarios
 
 Este proyecto es un sistema de autenticación de usuarios desarrollado en PHP y MySQL, que incluye funcionalidades como registro, inicio de sesión, auditoría de accesos, y gestión de usuarios con roles.
