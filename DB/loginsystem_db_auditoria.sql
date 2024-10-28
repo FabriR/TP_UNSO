@@ -89,14 +89,19 @@ END $$
 
 DELIMITER ;
 
--- Crear usuario 'test' y asignar permisos
+-- Eliminar el usuario 'test' si existe
 DROP USER IF EXISTS 'test'@'localhost';
+FLUSH PRIVILEGES;
+
+-- Crear nuevamente el usuario 'test' con la contraseña y permisos correctos
 CREATE USER 'test'@'localhost' IDENTIFIED BY 'Login12345@';
 GRANT ALL PRIVILEGES ON `loginsystem_db`.* TO 'test'@'localhost';
 FLUSH PRIVILEGES;
 
--- Comando para eliminar usuario test
-DROP USER IF EXISTS 'test'@'localhost';
+-- Restablecer la contraseña por si existía algún conflicto y asegurar permisos
+ALTER USER 'test'@'localhost' IDENTIFIED BY 'Login12345@';
+GRANT ALL PRIVILEGES ON `loginsystem_db`.* TO 'test'@'localhost';
+FLUSH PRIVILEGES;
 
 COMMIT;
 
