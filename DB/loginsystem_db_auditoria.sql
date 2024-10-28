@@ -89,6 +89,15 @@ END $$
 
 DELIMITER ;
 
+-- Crear usuario 'test' y asignar permisos
+DROP USER IF EXISTS 'test'@'localhost';
+CREATE USER 'test'@'localhost' IDENTIFIED BY 'Login12345@';
+GRANT ALL PRIVILEGES ON `loginsystem_db`.* TO 'test'@'localhost';
+FLUSH PRIVILEGES;
+
+-- Comando para eliminar usuario test
+DROP USER IF EXISTS 'test'@'localhost';
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
